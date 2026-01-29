@@ -9,5 +9,6 @@ const  uploadToCloud  = require('../helpers/upload');
 // router.use(authentication.authorization);
 router.post('/create', upload.single("photo"), uploadToCloud("profile_photos"), userController.createUsers);
 router.get('/getuser', userController.getUser);
+router.get('/getuser/:_id', userController.getUserById);
 
 module.exports = router;
