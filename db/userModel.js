@@ -1,11 +1,11 @@
-const { User }  = require('../model/index'); 
 const mongoose = require('mongoose');
+const UserSchema = require('../model/userSchema');
 
-User.statics.createUser = async function (user) {
-    return await this.insertOne(user);
+UserSchema.statics.createUser = async function (user) {
+    return await this.create(user);
 }
-User.statics.getUsers = async function ( filter){
+UserSchema.statics.getUsers = async function (filter) {
     return await this.find(filter);
 }
 
-module.exports = mongoose.model('user', User);
+module.exports = mongoose.model('User', UserSchema);

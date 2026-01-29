@@ -11,9 +11,11 @@ exports.registerUser = async(req, res) => {
 
         console.log(" req.body -> ", req.body );
         const { firstname, lastname, email, password, age, type } = req.body;
+        // image (if uploaded via multipart + cloud upload middleware)
+        const userImage = req?.image?.url || null;
         
-        // check already exits 
-        let user = await userModel.getUsers({ email, type });
+        // check already exists by email
+        let user = await userModel.getUsers({ email });
         console.log(" user -> ", user );
         if(user && user.length){
             return res.status(200).json({
@@ -24,8 +26,14 @@ exports.registerUser = async(req, res) => {
         // create user
         let hashPass  = bcrypt.hashSync(password, 10);
         user = userModel({
-            firstname, lastname, email, password  : hashPass, age, type
-        })  
+            firstname,
+            lastname,
+            email,
+            password: hashPass,
+            age,
+            type,
+            userImage
+        });
         const result = await user.save();
         return res.status(200).json({
             error : false,
@@ -46,6 +54,8 @@ exports.registerUser = async(req, res) => {
 
 exports.loginUser = async (req, res) => {
     try{
+        
+        console.log(" req.body -> ", req.body );
         const { email, password } = req.body;
         if(email && password){
             let user = await userModel.getUsers({ email });
@@ -90,11 +100,13 @@ exports.createUsers = async(req, res ) => {
     try{
         // console.log(" req.body -> ", req.body );
         console.log(" req.image -> ", req.image );
-        let user = userModel({ ...req.body, userImage : req?.image?.url });
+        const { password } = req.body;
+        const userImage = req?.image?.url || null;
+        const hashed = password ? bcrypt.hashSync(password, 10) : undefined;
+        let user = userModel({ ...req.body, password: hashed, userImage });
         let result = await user.save();
 
-
-        return res.status(401).json({
+        return res.status(200).json({
             error: false,
             message: "success",
             result
@@ -110,16 +122,49 @@ exports.createUsers = async(req, res ) => {
 
 exports.getUser = async (req, res) => {
     try {
-        console.log("user -> ", req.user );
-        if (!req.user?._id) {
-            return res.status(401).json({
+        // console.log("user -> ", req.user );
+        // if (!req.user?._id) {
+        //     return res.status(401).json({
+        //         error: true,
+        //         message: "Unauthorized"
+        //     });
+        // }
+
+        // const user = await userModel.findById(req.user._id).lean();
+        const user  = await userModel.getUsers({  });
+        console.log(" fetched user -> ", user );
+        if (!user) {
+            return res.status(404).json({
                 error: true,
-                message: "Unauthorized"
+                message: "User not found",
+                payload : []
             });
         }
 
-        const user = await userModel.findById(req.user._id).lean();
+        return res.status(200).json({
+            error: false,
+            message: "User fetched successfully",
+            payload: [user]
+        });
 
+    } catch (err) {
+
+        console.error("getUser:", err);
+        return res.status(500).json({
+            error: true,
+            message: "Server error",
+            payload : []
+        });
+    }
+};
+
+exports.getUserById = async (req, res) => {
+    try {
+        const id = req.params.id || req.params._id;
+        console.log(" req.params.id -> ", id );
+
+        const user = await userModel.findById(id).lean();
+        console.log(" fetched user -> ", user );
         if (!user) {
             return res.status(404).json({
                 error: true,
